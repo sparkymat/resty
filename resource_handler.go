@@ -13,24 +13,33 @@ type ResourceController interface {
 }
 
 type ResourceHandler struct {
-	Name       string
-	Controller ResourceController
-	router     *mux.Router
+	Name        string
+	Controller  ResourceController
+	router      *mux.Router
+	NextHandler http.Handler
 }
 
-func (handler *ResourceHandler) RegisterRoutes() {
-	http.Handle("/users/", handler)
+func (handler ResourceHandler) HandleRoot() {
+	http.Handle("/", handler)
 }
 
-func (handler *ResourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+func (handler ResourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	if handler.router == nil {
 		handler.router = mux.NewRouter()
 	}
 
 	// Check index
+
 	var match mux.RouteMatch
 	var path string
 	var route *mux.Route
+
+	path = fmt.Sprintf("/%v/{id:[0-9]+}.json", handler.Name)
+	route = handler.router.NewRoute().Path(path)
+	if route.Match(request, &match) {
+		handler.Controller.Show(response, request, match.Vars)
+		return
+	}
 
 	path = fmt.Sprintf("/%v.json", handler.Name)
 	route = handler.router.NewRoute().Path(path)
@@ -39,12 +48,9 @@ func (handler *ResourceHandler) ServeHTTP(response http.ResponseWriter, request 
 		return
 	}
 
-	path = fmt.Sprintf("/%v/{id:0-9+}.json", handler.Name)
-	route = handler.router.NewRoute().Path(path)
-	if route.Match(request, &match) {
-		handler.Controller.Index(response, request, match.Vars)
-		return
+	if handler.NextHandler != nil {
+		handler.NextHandler.ServeHTTP(response, request)
+	} else {
+		http.Error(response, "Page not found", http.StatusNotFound)
 	}
-
-	http.Error(response, "Page not found", http.StatusNotFound)
 }
