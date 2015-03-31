@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"bitbucket.org/pkg/inflect"
 	"github.com/gorilla/mux"
 	shttp "github.com/sparkymat/webdsl/http"
 )
@@ -18,49 +19,83 @@ type ResourceController interface {
 	Destroy(response http.ResponseWriter, request *http.Request, params map[string]string)
 }
 
-type ResourceHandler struct {
+type resourceHandler struct {
+	ParentChain []string
 	Name        string
-	Controller  ResourceController
+	controller  ResourceController
 	router      *mux.Router
 	NextHandler http.Handler
 }
 
-func (handler ResourceHandler) HandleRoot() {
+func Resource(path ...string) resourceHandler {
+	handler := resourceHandler{}
+
+	if len(path) == 0 {
+		return handler
+	}
+
+	handler.Name = path[len(path)-1]
+	handler.ParentChain = path[:len(path)-1]
+	handler.router = mux.NewRouter()
+
+	return handler
+}
+
+func (handler resourceHandler) Controller(controller ResourceController) resourceHandler {
+	handler.controller = controller
+	return handler
+}
+
+func (handler resourceHandler) HandleRoot() {
 	http.Handle("/", handler)
 }
 
-func (handler ResourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+func (handler resourceHandler) pathPrefix() string {
+	var prefix string
+	for _, parentPath := range handler.ParentChain {
+		singularParentPath := inflect.Singularize(parentPath)
+		prefix = fmt.Sprintf("%v/%v/{%v_id:[0-9]+}", prefix, parentPath, singularParentPath)
+	}
+	return prefix
+}
+
+func (handler resourceHandler) CollectionRoute() string {
+	return fmt.Sprintf("%v/%v.json", handler.pathPrefix(), handler.Name)
+}
+
+func (handler resourceHandler) MemberRoute() string {
+	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
+}
+
+func (handler resourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	if handler.router == nil {
 		handler.router = mux.NewRouter()
 	}
 
 	var match mux.RouteMatch
-	var path string
 	var route *mux.Route
 
-	path = fmt.Sprintf("/%v/{id:[0-9]+}.json", handler.Name)
-	route = handler.router.NewRoute().Path(path)
+	route = handler.router.NewRoute().Path(handler.MemberRoute())
 	if route.Match(request, &match) {
 		if request.Method == string(shttp.Get) {
-			handler.Controller.Show(response, request, match.Vars)
+			handler.controller.Show(response, request, match.Vars)
 			return
 		} else if request.Method == string(shttp.Patch) || request.Method == string(shttp.Post) {
-			handler.Controller.Update(response, request, match.Vars)
+			handler.controller.Update(response, request, match.Vars)
 			return
 		} else if request.Method == string(shttp.Delete) {
-			handler.Controller.Destroy(response, request, match.Vars)
+			handler.controller.Destroy(response, request, match.Vars)
 			return
 		}
 	}
 
-	path = fmt.Sprintf("/%v.json", handler.Name)
-	route = handler.router.NewRoute().Path(path)
+	route = handler.router.NewRoute().Path(handler.CollectionRoute())
 	if route.Match(request, &match) {
 		if request.Method == string(shttp.Get) {
-			handler.Controller.Index(response, request, match.Vars)
+			handler.controller.Index(response, request, match.Vars)
 			return
 		} else if request.Method == string(shttp.Put) {
-			handler.Controller.Create(response, request, match.Vars)
+			handler.controller.Create(response, request, match.Vars)
 			return
 		}
 	}
@@ -72,11 +107,11 @@ func (handler ResourceHandler) ServeHTTP(response http.ResponseWriter, request *
 	}
 }
 
-func (handler ResourceHandler) PrintRoutes(writer io.Writer) {
-	fmt.Fprintf(writer, "%v\t/%v.json\t\t%v#%v\n", shttp.Get, handler.Name, reflect.TypeOf(handler.Controller), "Index")
-	fmt.Fprintf(writer, "%v\t/%v.json\t\t%v#%v\n", shttp.Put, handler.Name, reflect.TypeOf(handler.Controller), "Create")
-	fmt.Fprintf(writer, "%v\t/%v/{id:[0-9]+}.json\t\t%v#%v\n", shttp.Get, handler.Name, reflect.TypeOf(handler.Controller), "Show")
-	fmt.Fprintf(writer, "%v\t/%v/{id:[0-9]+}.json\t\t%v#%v\n", shttp.Patch, handler.Name, reflect.TypeOf(handler.Controller), "Update")
-	fmt.Fprintf(writer, "%v\t/%v/{id:[0-9]+}.json\t\t%v#%v\n", shttp.Post, handler.Name, reflect.TypeOf(handler.Controller), "Update")
-	fmt.Fprintf(writer, "%v\t/%v/{id:[0-9]+}.json\t\t%v#%v\n", shttp.Delete, handler.Name, reflect.TypeOf(handler.Controller), "Destroy")
+func (handler resourceHandler) PrintRoutes(writer io.Writer) {
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Get, handler.CollectionRoute(), reflect.TypeOf(handler.controller), "Index")
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Put, handler.CollectionRoute(), reflect.TypeOf(handler.controller), "Create")
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Get, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Show")
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Patch, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Update")
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Post, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Update")
+	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Delete, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Destroy")
 }
