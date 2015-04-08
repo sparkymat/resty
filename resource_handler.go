@@ -24,35 +24,6 @@ type resourceHandler struct {
 	Name        string
 	controller  ResourceController
 	router      *mux.Router
-	nextHandler http.Handler
-}
-
-func Resource(path ...string) resourceHandler {
-	handler := resourceHandler{}
-
-	if len(path) == 0 {
-		return handler
-	}
-
-	handler.Name = path[len(path)-1]
-	handler.ParentChain = path[:len(path)-1]
-	handler.router = mux.NewRouter()
-
-	return handler
-}
-
-func (handler resourceHandler) NextHandler(nextHandler resourceHandler) resourceHandler {
-	handler.nextHandler = nextHandler
-	return handler
-}
-
-func (handler resourceHandler) Controller(controller ResourceController) resourceHandler {
-	handler.controller = controller
-	return handler
-}
-
-func (handler resourceHandler) HandleRoot() {
-	http.Handle("/", handler)
 }
 
 func (handler resourceHandler) pathPrefix() string {
@@ -87,42 +58,6 @@ func (handler resourceHandler) deriveParams(request *http.Request, match mux.Rou
 	}
 
 	return params
-}
-
-func (handler resourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	var match mux.RouteMatch
-	var route *mux.Route
-
-	route = handler.router.NewRoute().Path(handler.MemberRoute())
-	if route.Match(request, &match) {
-		if request.Method == string(shttp.Get) {
-			handler.controller.Show(response, request, handler.deriveParams(request, match))
-			return
-		} else if request.Method == string(shttp.Patch) || request.Method == string(shttp.Post) {
-			handler.controller.Update(response, request, handler.deriveParams(request, match))
-			return
-		} else if request.Method == string(shttp.Delete) {
-			handler.controller.Destroy(response, request, handler.deriveParams(request, match))
-			return
-		}
-	}
-
-	route = handler.router.NewRoute().Path(handler.CollectionRoute())
-	if route.Match(request, &match) {
-		if request.Method == string(shttp.Get) {
-			handler.controller.Index(response, request, handler.deriveParams(request, match))
-			return
-		} else if request.Method == string(shttp.Put) {
-			handler.controller.Create(response, request, handler.deriveParams(request, match))
-			return
-		}
-	}
-
-	if handler.nextHandler != nil {
-		handler.nextHandler.ServeHTTP(response, request)
-	} else {
-		http.Error(response, "Page not found", http.StatusNotFound)
-	}
 }
 
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
