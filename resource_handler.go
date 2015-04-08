@@ -12,11 +12,11 @@ import (
 )
 
 type ResourceController interface {
-	Index(response http.ResponseWriter, request *http.Request, params map[string]string)
-	Create(response http.ResponseWriter, request *http.Request, params map[string]string)
-	Show(response http.ResponseWriter, request *http.Request, params map[string]string)
-	Update(response http.ResponseWriter, request *http.Request, params map[string]string)
-	Destroy(response http.ResponseWriter, request *http.Request, params map[string]string)
+	Index(response http.ResponseWriter, request *http.Request, params map[string][]string)
+	Create(response http.ResponseWriter, request *http.Request, params map[string][]string)
+	Show(response http.ResponseWriter, request *http.Request, params map[string][]string)
+	Update(response http.ResponseWriter, request *http.Request, params map[string][]string)
+	Destroy(response http.ResponseWriter, request *http.Request, params map[string][]string)
 }
 
 type resourceHandler struct {
@@ -24,7 +24,7 @@ type resourceHandler struct {
 	Name        string
 	controller  ResourceController
 	router      *mux.Router
-	NextHandler http.Handler
+	nextHandler http.Handler
 }
 
 func Resource(path ...string) resourceHandler {
@@ -38,6 +38,11 @@ func Resource(path ...string) resourceHandler {
 	handler.ParentChain = path[:len(path)-1]
 	handler.router = mux.NewRouter()
 
+	return handler
+}
+
+func (handler resourceHandler) NextHandler(nextHandler resourceHandler) resourceHandler {
+	handler.nextHandler = nextHandler
 	return handler
 }
 
@@ -67,24 +72,37 @@ func (handler resourceHandler) MemberRoute() string {
 	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
 }
 
-func (handler resourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	if handler.router == nil {
-		handler.router = mux.NewRouter()
+func (handler resourceHandler) deriveParams(request *http.Request, match mux.RouteMatch) map[string][]string {
+	params := make(map[string][]string)
+
+	for key, value := range match.Vars {
+		var values []string
+		values = append(values, value)
+		params[key] = values
 	}
 
+	request.ParseForm()
+	for key, value := range request.Form {
+		params[key] = value
+	}
+
+	return params
+}
+
+func (handler resourceHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	var match mux.RouteMatch
 	var route *mux.Route
 
 	route = handler.router.NewRoute().Path(handler.MemberRoute())
 	if route.Match(request, &match) {
 		if request.Method == string(shttp.Get) {
-			handler.controller.Show(response, request, match.Vars)
+			handler.controller.Show(response, request, handler.deriveParams(request, match))
 			return
 		} else if request.Method == string(shttp.Patch) || request.Method == string(shttp.Post) {
-			handler.controller.Update(response, request, match.Vars)
+			handler.controller.Update(response, request, handler.deriveParams(request, match))
 			return
 		} else if request.Method == string(shttp.Delete) {
-			handler.controller.Destroy(response, request, match.Vars)
+			handler.controller.Destroy(response, request, handler.deriveParams(request, match))
 			return
 		}
 	}
@@ -92,16 +110,16 @@ func (handler resourceHandler) ServeHTTP(response http.ResponseWriter, request *
 	route = handler.router.NewRoute().Path(handler.CollectionRoute())
 	if route.Match(request, &match) {
 		if request.Method == string(shttp.Get) {
-			handler.controller.Index(response, request, match.Vars)
+			handler.controller.Index(response, request, handler.deriveParams(request, match))
 			return
 		} else if request.Method == string(shttp.Put) {
-			handler.controller.Create(response, request, match.Vars)
+			handler.controller.Create(response, request, handler.deriveParams(request, match))
 			return
 		}
 	}
 
-	if handler.NextHandler != nil {
-		handler.NextHandler.ServeHTTP(response, request)
+	if handler.nextHandler != nil {
+		handler.nextHandler.ServeHTTP(response, request)
 	} else {
 		http.Error(response, "Page not found", http.StatusNotFound)
 	}
