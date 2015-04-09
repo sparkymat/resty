@@ -11,18 +11,10 @@ import (
 	shttp "github.com/sparkymat/webdsl/http"
 )
 
-type ResourceController interface {
-	Index(response http.ResponseWriter, request *http.Request, params map[string][]string)
-	Create(response http.ResponseWriter, request *http.Request, params map[string][]string)
-	Show(response http.ResponseWriter, request *http.Request, params map[string][]string)
-	Update(response http.ResponseWriter, request *http.Request, params map[string][]string)
-	Destroy(response http.ResponseWriter, request *http.Request, params map[string][]string)
-}
-
 type resourceHandler struct {
 	ParentChain []string
 	Name        string
-	controller  ResourceController
+	controller  interface{}
 	router      *mux.Router
 }
 
@@ -41,6 +33,20 @@ func (handler resourceHandler) CollectionRoute() string {
 
 func (handler resourceHandler) MemberRoute() string {
 	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
+}
+
+func (handler resourceHandler) callController(method string, response http.ResponseWriter, request *http.Request, params map[string][]string) {
+	var args []reflect.Value
+	args = append(args, reflect.ValueOf(response))
+	args = append(args, reflect.ValueOf(request))
+	args = append(args, reflect.ValueOf(params))
+
+	methodReflection := reflect.ValueOf(handler.controller).MethodByName(method)
+	if methodReflection.IsValid() {
+		methodReflection.Call(args)
+	} else {
+		http.Error(response, fmt.Sprintf("No '%v' method on %v", method, reflect.TypeOf(handler.controller).Name()), http.StatusInternalServerError)
+	}
 }
 
 func (handler resourceHandler) deriveParams(request *http.Request, match mux.RouteMatch) map[string][]string {

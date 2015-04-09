@@ -12,7 +12,7 @@ type ResourceRouter struct {
 	router    *mux.Router
 }
 
-func (router *ResourceRouter) Resource(path []string, controller ResourceController) {
+func (router *ResourceRouter) Resource(path []string, controller interface{}) {
 	handler := resourceHandler{}
 
 	if len(path) == 0 {
@@ -43,13 +43,13 @@ func (router ResourceRouter) ServeHTTP(response http.ResponseWriter, request *ht
 		route = router.router.NewRoute().Path(resource.MemberRoute())
 		if route.Match(request, &match) {
 			if request.Method == string(shttp.Get) {
-				resource.controller.Show(response, request, resource.deriveParams(request, match))
+				resource.callController("Show", response, request, resource.deriveParams(request, match))
 				return
 			} else if request.Method == string(shttp.Patch) || request.Method == string(shttp.Post) {
-				resource.controller.Update(response, request, resource.deriveParams(request, match))
+				resource.callController("Update", response, request, resource.deriveParams(request, match))
 				return
 			} else if request.Method == string(shttp.Delete) {
-				resource.controller.Destroy(response, request, resource.deriveParams(request, match))
+				resource.callController("Destroy", response, request, resource.deriveParams(request, match))
 				return
 			}
 		}
@@ -57,10 +57,10 @@ func (router ResourceRouter) ServeHTTP(response http.ResponseWriter, request *ht
 		route = router.router.NewRoute().Path(resource.CollectionRoute())
 		if route.Match(request, &match) {
 			if request.Method == string(shttp.Get) {
-				resource.controller.Index(response, request, resource.deriveParams(request, match))
+				resource.callController("Index", response, request, resource.deriveParams(request, match))
 				return
 			} else if request.Method == string(shttp.Put) {
-				resource.controller.Create(response, request, resource.deriveParams(request, match))
+				resource.callController("Create", response, request, resource.deriveParams(request, match))
 				return
 			}
 		}
