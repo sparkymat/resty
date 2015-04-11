@@ -12,19 +12,22 @@ type ResourceRouter struct {
 	router    *mux.Router
 }
 
-func (router *ResourceRouter) Resource(path []string, controller interface{}) {
+func (router *ResourceRouter) Resource(path []string, controller interface{}) *resourceHandler {
 	handler := resourceHandler{}
 
 	if len(path) == 0 {
-		return
+		return &handler
 	}
 
 	handler.Name = path[len(path)-1]
 	handler.ParentChain = path[:len(path)-1]
 	handler.router = mux.NewRouter()
 	handler.controller = controller
+	handler.methods = []string{"create", "update", "show", "index", "destroy"}
 
 	router.resources = append(router.resources, handler)
+
+	return &router.resources[len(router.resources)-1]
 }
 
 func (router ResourceRouter) HandleRoot() {

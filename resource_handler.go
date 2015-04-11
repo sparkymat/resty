@@ -16,6 +16,12 @@ type resourceHandler struct {
 	Name        string
 	controller  interface{}
 	router      *mux.Router
+	methods     []string
+}
+
+func (handler resourceHandler) Controller(controller interface{}) resourceHandler {
+	handler.controller = controller
+	return handler
 }
 
 func (handler resourceHandler) pathPrefix() string {
@@ -33,6 +39,40 @@ func (handler resourceHandler) CollectionRoute() string {
 
 func (handler resourceHandler) MemberRoute() string {
 	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
+}
+
+func (handler *resourceHandler) Except(methods ...string) *resourceHandler {
+	filteredMethods := handler.methods[:0]
+	for _, m := range handler.methods {
+		var included = true
+		for _, exceptedMethod := range methods {
+			if m == exceptedMethod {
+				included = false
+			}
+		}
+		if included {
+			filteredMethods = append(filteredMethods, m)
+		}
+	}
+	handler.methods = filteredMethods
+	return handler
+}
+
+func (handler *resourceHandler) Only(methods ...string) *resourceHandler {
+	filteredMethods := handler.methods[:0]
+	for _, m := range handler.methods {
+		var included = false
+		for _, includedMethod := range methods {
+			if m == includedMethod {
+				included = true
+			}
+		}
+		if included {
+			filteredMethods = append(filteredMethods, m)
+		}
+	}
+	handler.methods = filteredMethods
+	return handler
 }
 
 func (handler resourceHandler) callController(method string, response http.ResponseWriter, request *http.Request, params map[string][]string) {
