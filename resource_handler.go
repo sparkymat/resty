@@ -16,7 +16,7 @@ type resourceHandler struct {
 	Name        string
 	controller  interface{}
 	router      *mux.Router
-	methods     []string
+	verbs       []Verb
 }
 
 func (handler resourceHandler) Controller(controller interface{}) resourceHandler {
@@ -41,37 +41,37 @@ func (handler resourceHandler) MemberRoute() string {
 	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
 }
 
-func (handler *resourceHandler) Except(methods ...string) *resourceHandler {
-	filteredMethods := handler.methods[:0]
-	for _, m := range handler.methods {
+func (handler *resourceHandler) Except(verbs ...Verb) *resourceHandler {
+	filteredVerbs := handler.verbs[:0]
+	for _, v := range handler.verbs {
 		var included = true
-		for _, exceptedMethod := range methods {
-			if m == exceptedMethod {
+		for _, exceptedVerb := range verbs {
+			if v == exceptedVerb {
 				included = false
 			}
 		}
 		if included {
-			filteredMethods = append(filteredMethods, m)
+			filteredVerbs = append(filteredVerbs, v)
 		}
 	}
-	handler.methods = filteredMethods
+	handler.verbs = filteredVerbs
 	return handler
 }
 
-func (handler *resourceHandler) Only(methods ...string) *resourceHandler {
-	filteredMethods := handler.methods[:0]
-	for _, m := range handler.methods {
+func (handler *resourceHandler) Only(verbs ...Verb) *resourceHandler {
+	filteredVerbs := handler.verbs[:0]
+	for _, v := range handler.verbs {
 		var included = false
-		for _, includedMethod := range methods {
-			if m == includedMethod {
+		for _, includedVerb := range verbs {
+			if v == includedVerb {
 				included = true
 			}
 		}
 		if included {
-			filteredMethods = append(filteredMethods, m)
+			filteredVerbs = append(filteredVerbs, v)
 		}
 	}
-	handler.methods = filteredMethods
+	handler.verbs = filteredVerbs
 	return handler
 }
 
@@ -104,6 +104,16 @@ func (handler resourceHandler) deriveParams(request *http.Request, match mux.Rou
 	}
 
 	return params
+}
+
+func (handler resourceHandler) handlesVerb(verb Verb) bool {
+	for _, v := range handler.verbs {
+		if v == verb {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
