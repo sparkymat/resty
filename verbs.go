@@ -5,31 +5,35 @@ import (
 	shttp "github.com/sparkymat/webdsl/http"
 )
 
-type Verb string
+type ActionType string
 
-const Create Verb = "create"
-const Show Verb = "show"
-const Update Verb = "update"
-const Index Verb = "index"
-const Destroy Verb = "destroy"
+const MemberAction ActionType = "member"
+const CollectionAction ActionType = "collection"
+
+type Verb struct {
+	name       string
+	methods    []shttp.Method
+	actionType ActionType
+}
+
+var Create = Verb{name: "create", methods: []shttp.Method{shttp.Put}, actionType: CollectionAction}
+var Show = Verb{name: "show", methods: []shttp.Method{shttp.Get}, actionType: MemberAction}
+var Update = Verb{name: "update", methods: []shttp.Method{shttp.Patch, shttp.Post}, actionType: MemberAction}
+var Index = Verb{name: "index", methods: []shttp.Method{shttp.Get}, actionType: CollectionAction}
+var Destroy = Verb{name: "destroy", methods: []shttp.Method{shttp.Delete}, actionType: MemberAction}
 
 func (verb Verb) Action() string {
-	return inflect.Camelize(string(verb))
+	return inflect.Camelize(verb.name)
 }
 
 func (verb Verb) Methods() []shttp.Method {
-	switch verb {
-	case Create:
-		return []shttp.Method{shttp.Put}
-	case Update:
-		return []shttp.Method{shttp.Patch, shttp.Post}
-	case Destroy:
-		return []shttp.Method{shttp.Delete}
-	}
-
-	return []shttp.Method{shttp.Get}
+	return verb.Methods()
 }
 
-func CustomMethod(verb string) Verb {
-	return Verb(verb)
+func MemberVerb(methods []shttp.Method, verb string) Verb {
+	return Verb{name: verb, methods: methods, actionType: MemberAction}
+}
+
+func CollectionVerb(methods []shttp.Method, verb string) Verb {
+	return Verb{name: verb, methods: methods, actionType: CollectionAction}
 }

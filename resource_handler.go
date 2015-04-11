@@ -46,7 +46,7 @@ func (handler *resourceHandler) Except(verbs ...Verb) *resourceHandler {
 	for _, v := range handler.verbs {
 		var included = true
 		for _, exceptedVerb := range verbs {
-			if v == exceptedVerb {
+			if v.name == exceptedVerb.name {
 				included = false
 			}
 		}
@@ -63,7 +63,7 @@ func (handler *resourceHandler) Only(verbs ...Verb) *resourceHandler {
 	for _, v := range handler.verbs {
 		var included = false
 		for _, includedVerb := range verbs {
-			if v == includedVerb {
+			if v.name == includedVerb.name {
 				included = true
 			}
 		}
@@ -108,7 +108,7 @@ func (handler resourceHandler) deriveParams(request *http.Request, match mux.Rou
 
 func (handler resourceHandler) handlesVerb(verb Verb) bool {
 	for _, v := range handler.verbs {
-		if v == verb {
+		if v.name == verb.name {
 			return true
 		}
 	}
