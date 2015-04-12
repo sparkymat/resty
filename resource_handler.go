@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/gorilla/mux"
-	shttp "github.com/sparkymat/webdsl/http"
 )
 
 type resourceHandler struct {
@@ -116,11 +115,29 @@ func (handler resourceHandler) handlesVerb(verb Verb) bool {
 	return false
 }
 
+func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, response http.ResponseWriter, request *http.Request) bool {
+	var match mux.RouteMatch
+	var route *mux.Route
+
+	for _, v := range handler.verbs {
+		route = router.NewRoute().Path(fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.Name, v.routeSuffix()))
+		if route.Match(request, &match) {
+			for _, m := range v.Methods() {
+				if string(m) == request.Method {
+					handler.callController(v.Action(), response, request, handler.deriveParams(request, match))
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Get, handler.CollectionRoute(), reflect.TypeOf(handler.controller), "Index")
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Put, handler.CollectionRoute(), reflect.TypeOf(handler.controller), "Create")
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Get, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Show")
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Patch, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Update")
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Post, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Update")
-	fmt.Fprintf(writer, "%v\t%v\t\t%v#%v\n", shttp.Delete, handler.MemberRoute(), reflect.TypeOf(handler.controller), "Destroy")
+	for _, verb := range handler.verbs {
+		for _, method := range verb.methods {
+			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.Name, verb.routeSuffix(), reflect.TypeOf(handler.controller), verb.Action())
+		}
+	}
 }

@@ -1,6 +1,8 @@
 package resty
 
 import (
+	"fmt"
+
 	"bitbucket.org/pkg/inflect"
 	shttp "github.com/sparkymat/webdsl/http"
 )
@@ -27,7 +29,7 @@ func (verb Verb) Action() string {
 }
 
 func (verb Verb) Methods() []shttp.Method {
-	return verb.Methods()
+	return verb.methods
 }
 
 func MemberVerb(methods []shttp.Method, verb string) Verb {
@@ -36,4 +38,19 @@ func MemberVerb(methods []shttp.Method, verb string) Verb {
 
 func CollectionVerb(methods []shttp.Method, verb string) Verb {
 	return Verb{name: verb, methods: methods, actionType: CollectionAction}
+}
+
+func (verb Verb) routeSuffix() string {
+	switch verb.name {
+	case "create", "index":
+		return ".json"
+	case "show", "update", "destroy":
+		return "/{id:[0-9]+}.json"
+	}
+
+	if verb.actionType == MemberAction {
+		return fmt.Sprintf("/{id:[0-9]+}/%v.json", verb.name)
+	} else {
+		return fmt.Sprintf("/%v.json", verb.name)
+	}
 }

@@ -1,10 +1,10 @@
 package resty
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	shttp "github.com/sparkymat/webdsl/http"
 )
 
 type ResourceRouter struct {
@@ -35,40 +35,22 @@ func (router ResourceRouter) HandleRoot() {
 }
 
 func (router ResourceRouter) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	var match mux.RouteMatch
-	var route *mux.Route
-
 	if router.router == nil {
 		router.router = mux.NewRouter()
 	}
 
 	for _, resource := range router.resources {
-		route = router.router.NewRoute().Path(resource.MemberRoute())
-		if route.Match(request, &match) {
-			if (request.Method == string(shttp.Get)) && resource.handlesVerb(Show) {
-				resource.callController(Show.Action(), response, request, resource.deriveParams(request, match))
-				return
-			} else if (request.Method == string(shttp.Patch) || request.Method == string(shttp.Post)) && resource.handlesVerb(Update) {
-				resource.callController(Update.Action(), response, request, resource.deriveParams(request, match))
-				return
-			} else if (request.Method == string(shttp.Delete)) && resource.handlesVerb(Destroy) {
-				resource.callController(Destroy.Action(), response, request, resource.deriveParams(request, match))
-				return
-			}
+		var handled = resource.checkAndHandleRequest(router.router, response, request)
+		if handled {
+			return
 		}
-
-		route = router.router.NewRoute().Path(resource.CollectionRoute())
-		if route.Match(request, &match) {
-			if (request.Method == string(shttp.Get)) && resource.handlesVerb(Index) {
-				resource.callController(Index.Action(), response, request, resource.deriveParams(request, match))
-				return
-			} else if (request.Method == string(shttp.Put)) && resource.handlesVerb(Create) {
-				resource.callController(Create.Action(), response, request, resource.deriveParams(request, match))
-				return
-			}
-		}
-
 	}
 
 	http.Error(response, "Page not found", http.StatusNotFound)
+}
+
+func (router ResourceRouter) PrintRoutes(writer io.Writer) {
+	for _, handler := range router.resources {
+		handler.PrintRoutes(writer)
+	}
 }
