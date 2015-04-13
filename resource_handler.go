@@ -8,6 +8,7 @@ import (
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/gorilla/mux"
+	shttp "github.com/sparkymat/webdsl/http"
 )
 
 type resourceHandler struct {
@@ -38,6 +39,18 @@ func (handler resourceHandler) CollectionRoute() string {
 
 func (handler resourceHandler) MemberRoute() string {
 	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
+}
+
+func (handler *resourceHandler) Member(name string, methods []shttp.Method) *resourceHandler {
+	verb := Verb{name: name, methods: methods, actionType: MemberAction}
+	handler.verbs = append(handler.verbs, verb)
+	return handler
+}
+
+func (handler *resourceHandler) Collection(name string, methods []shttp.Method) *resourceHandler {
+	verb := Verb{name: name, methods: methods, actionType: CollectionAction}
+	handler.verbs = append(handler.verbs, verb)
+	return handler
 }
 
 func (handler *resourceHandler) Except(verbs ...Verb) *resourceHandler {
