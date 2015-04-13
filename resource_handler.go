@@ -12,8 +12,8 @@ import (
 )
 
 type resourceHandler struct {
-	ParentChain []string
-	Name        string
+	parentChain []string
+	name        string
 	controller  interface{}
 	router      *mux.Router
 	verbs       []Verb
@@ -26,19 +26,11 @@ func (handler resourceHandler) Controller(controller interface{}) resourceHandle
 
 func (handler resourceHandler) pathPrefix() string {
 	var prefix string
-	for _, parentPath := range handler.ParentChain {
+	for _, parentPath := range handler.parentChain {
 		singularParentPath := inflect.Singularize(parentPath)
 		prefix = fmt.Sprintf("%v/%v/{%v_id:[0-9]+}", prefix, parentPath, singularParentPath)
 	}
 	return prefix
-}
-
-func (handler resourceHandler) CollectionRoute() string {
-	return fmt.Sprintf("%v/%v.json", handler.pathPrefix(), handler.Name)
-}
-
-func (handler resourceHandler) MemberRoute() string {
-	return fmt.Sprintf("%v/%v/{id:[0-9]+}.json", handler.pathPrefix(), handler.Name)
 }
 
 func (handler *resourceHandler) Member(name string, methods []shttp.Method) *resourceHandler {
@@ -101,7 +93,7 @@ func (handler resourceHandler) callController(method string, response http.Respo
 	}
 }
 
-func (handler resourceHandler) deriveParams(request *http.Request, match mux.RouteMatch) map[string][]string {
+func (handler resourceHandler) collectParams(request *http.Request, match mux.RouteMatch) map[string][]string {
 	params := make(map[string][]string)
 
 	for key, value := range match.Vars {
@@ -118,26 +110,16 @@ func (handler resourceHandler) deriveParams(request *http.Request, match mux.Rou
 	return params
 }
 
-func (handler resourceHandler) handlesVerb(verb Verb) bool {
-	for _, v := range handler.verbs {
-		if v.name == verb.name {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, response http.ResponseWriter, request *http.Request) bool {
 	var match mux.RouteMatch
 	var route *mux.Route
 
 	for _, v := range handler.verbs {
-		route = router.NewRoute().Path(fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.Name, v.routeSuffix()))
+		route = router.NewRoute().Path(fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.name, v.routeSuffix()))
 		if route.Match(request, &match) {
 			for _, m := range v.Methods() {
 				if string(m) == request.Method {
-					handler.callController(v.Action(), response, request, handler.deriveParams(request, match))
+					handler.callController(v.Action(), response, request, handler.collectParams(request, match))
 					return true
 				}
 			}
@@ -150,7 +132,7 @@ func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, respons
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
 	for _, verb := range handler.verbs {
 		for _, method := range verb.methods {
-			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.Name, verb.routeSuffix(), reflect.TypeOf(handler.controller), verb.Action())
+			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.name, verb.routeSuffix(), reflect.TypeOf(handler.controller), verb.Action())
 		}
 	}
 }
