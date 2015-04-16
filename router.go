@@ -2,7 +2,6 @@ package resty
 
 import (
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -58,7 +57,6 @@ func (router router) ServeHTTP(response http.ResponseWriter, request *http.Reque
 		}
 	}
 
-	log.Printf("Gonna mux\n")
 	router.muxRouter.ServeHTTP(response, request)
 }
 
