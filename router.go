@@ -19,12 +19,12 @@ func NewRouter() *router {
 	return &r
 }
 
-func (router *router) MuxRouter() *mux.Router {
-	return router.muxRouter
-}
-
 func (router *router) HandleFunc(path string, handlerFunc http.HandlerFunc) {
 	router.muxRouter.HandleFunc(path, handlerFunc)
+}
+
+func (router *router) PathPrefix(tpl string) *mux.Route {
+	return router.muxRouter.PathPrefix(tpl)
 }
 
 func (router *router) Resource(path []string, controller interface{}) *resourceHandler {
