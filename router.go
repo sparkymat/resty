@@ -1,8 +1,11 @@
 package resty
 
 import (
+	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -10,6 +13,7 @@ import (
 type router struct {
 	resourceHandlers []resourceHandler
 	muxRouter        *mux.Router
+	debugMode        bool
 }
 
 func NewRouter() *router {
@@ -17,6 +21,14 @@ func NewRouter() *router {
 	r.muxRouter = mux.NewRouter()
 
 	return &r
+}
+
+func (router *router) EnableDebug() {
+	router.debugMode = true
+}
+
+func (router *router) DisableDebug() {
+	router.debugMode = false
 }
 
 func (router *router) HandleFunc(path string, handlerFunc http.HandlerFunc) {
@@ -50,6 +62,26 @@ func (router router) HandleRoot() {
 }
 
 func (router router) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	request.ParseForm()
+	if router.debugMode {
+		var params []string
+		for key, values := range request.Form {
+			if len(values) == 0 {
+				params = append(params, fmt.Sprintf("%v: %v", key, "nil"))
+			} else if len(values) == 1 {
+				params = append(params, fmt.Sprintf("%v: \"%v\"", key, values[0]))
+			} else {
+				var quotedValues []string
+				for _, value := range values {
+					quotedValues = append(quotedValues, fmt.Sprintf("\"%v\"", value))
+				}
+				params = append(params, fmt.Sprintf("%v: [%v]", key, strings.Join(quotedValues, " , ")))
+			}
+		}
+
+		log.Printf("[LOG] Incoming request: %v on %v with params: {%v}", request.Method, request.RequestURI, strings.Join(params, " , "))
+	}
+
 	for _, resource := range router.resourceHandlers {
 		var handled = resource.checkAndHandleRequest(router.muxRouter, response, request)
 		if handled {

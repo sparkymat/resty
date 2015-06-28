@@ -102,7 +102,6 @@ func (handler resourceHandler) collectParams(request *http.Request, match mux.Ro
 		params[key] = values
 	}
 
-	request.ParseForm()
 	for key, value := range request.Form {
 		params[key] = value
 	}
