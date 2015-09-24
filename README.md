@@ -1,6 +1,11 @@
 # resty
 
-resty is a wrapper over Gorilla Mux (http://www.gorillatoolkit.org/pkg/mux) which provides mapping for REST resources.
+resty is a wrapper over Gorilla Mux (http://www.gorillatoolkit.org/pkg/mux) which provides mapping for REST resources. It automatically invokes a passed-in controller object's methods for incoming REST actions.
+
+`/users/2` will map to User.Show()
+`/users/2/edit` will map to User.Edit()
+
+The methods will be of type `func (response http.ResponseWriter, request *http.Request, params map[string][]string)`, where the last aragument will be a map containing the params parsed from the HTTP request.
 
 Example usage:
 
