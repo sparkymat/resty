@@ -1,6 +1,6 @@
 # resty
 
-resty is a wrapper over [[Gorilla Mux|http://www.gorillatoolkit.org/pkg/mux]] which provides mapping for REST resources.
+resty is a wrapper over Gorilla Mux (http://www.gorillatoolkit.org/pkg/mux) which provides mapping for REST resources.
 
 Example usage:
 
