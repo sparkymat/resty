@@ -1,6 +1,7 @@
 package resty
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -90,6 +91,14 @@ func (router router) ServeHTTP(response http.ResponseWriter, request *http.Reque
 	}
 
 	router.muxRouter.ServeHTTP(response, request)
+}
+
+func WriteJSONResponse(response http.ResponseWriter, status int, body map[string]interface{}) {
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(status)
+
+	encoder := json.NewEncoder(response)
+	encoder.Encode(body)
 }
 
 func (router router) PrintRoutes(writer io.Writer) {
