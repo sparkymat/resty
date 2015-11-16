@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"github.com/sparkymat/resty/cmd/modelgen/golang"
 
@@ -18,6 +19,13 @@ var supportedTypes = map[string]reflect.Type{
 	"boolean": reflect.TypeOf(bool(true)),
 	"float64": reflect.TypeOf(float64(0.0)),
 	"float32": reflect.TypeOf(float32(0.0)),
+}
+
+type modelTemplateValues struct {
+	ModelName      string
+	PrimaryKey     string
+	PrimaryKeyType string
+	FieldLines     string
 }
 
 func main() {
@@ -34,26 +42,35 @@ func main() {
 	fieldLine := strings.Join(fieldLines, "\n")
 
 	os.MkdirAll("model", 0755)
+
+	tpl := template.New("model")
+	_, err := tpl.Parse(modelTemplate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Unable to load template. Reason: %v\n", err.Error())
+		os.Exit(1)
+	}
+
 	fp, err := os.Create(tempPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Unable to create model file. Reason: %v\n", err.Error())
 		os.Exit(1)
 	}
 
-	fmt.Fprintf(fp, `package model
+	values := modelTemplateValues{}
+	values.ModelName = modelName
+	values.FieldLines = fieldLine
 
-type %v struct {
-	%v
-}
+	err = tpl.Execute(fp, values)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Unable to generate model file. Reason: %v\n", err.Error())
+		os.Exit(1)
+	}
 
-func (v %v) Find%vById(id int64) (*%v, error) {
-}
-	`, modelName, fieldLine, modelName, modelName, modelName)
 	fp.Close()
 
 	err = golang.Fmt(tempPath, outPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Unable to gofmt the model file. Reason: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: Unable to gofmt the model file. Reason: %v\n", err.Error())
 		os.Exit(1)
 	}
 	os.Remove(tempPath)
