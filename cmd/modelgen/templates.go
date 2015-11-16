@@ -1,5 +1,16 @@
 package main
 
+import "github.com/sparkymat/resty/cmd/modelgen/field"
+
+type modelTemplateValues struct {
+	ModelName              string
+	PrimaryKey             field.Type
+	Fields                 []field.Type
+	ResourceCollectionName string
+	BackTick               string
+	TableName              string
+}
+
 var modelTemplate = `package model
 type {{.ModelName}} struct {
 {{range $field := .Fields}} {{$field.FieldName}} {{$field.FieldType.Name}} {{$field.DbColumnNameAnnotation}}

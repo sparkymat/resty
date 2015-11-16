@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"text/template"
 
-	"github.com/sparkymat/resty/cmd/modelgen/field"
 	"github.com/sparkymat/resty/cmd/modelgen/golang"
 
 	"bitbucket.org/pkg/inflect"
@@ -19,15 +18,6 @@ var supportedTypes = map[string]reflect.Type{
 	"boolean": reflect.TypeOf(bool(true)),
 	"float64": reflect.TypeOf(float64(0.0)),
 	"float32": reflect.TypeOf(float32(0.0)),
-}
-
-type modelTemplateValues struct {
-	ModelName              string
-	PrimaryKey             field.Type
-	Fields                 []field.Type
-	ResourceCollectionName string
-	BackTick               string
-	TableName              string
 }
 
 func main() {
