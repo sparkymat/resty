@@ -9,9 +9,9 @@ import (
 	"github.com/sparkymat/resty/cmd/modelgen/field"
 )
 
-func processArgs() (string, []field.Type) {
-	if len(os.Args) == 1 {
-		fmt.Fprintf(os.Stderr, "Usage: modelgen model-name (optional: field1:type field2:type:column-name ... )\n")
+func processArgs() (string, string, []field.Type) {
+	if len(os.Args) < 3 {
+		fmt.Fprintf(os.Stderr, "Usage: modelgen model-name(:table-name) primary-key:type(:column_name) (optional: field1:type field2:type:column-name ... )\n")
 		os.Exit(1)
 	}
 
@@ -50,5 +50,14 @@ func processArgs() (string, []field.Type) {
 		fields = append(fields, field)
 	}
 
-	return os.Args[1], fields
+	modelName := inflect.Camelize(os.Args[1])
+	tableName := inflect.Pluralize(inflect.Underscore(modelName))
+
+	modelParts := strings.Split(os.Args[1], ":")
+	if len(modelParts) > 1 {
+		modelName = inflect.Camelize(modelParts[0])
+		tableName = modelParts[1]
+	}
+
+	return modelName, tableName, fields
 }

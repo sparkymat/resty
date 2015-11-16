@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"text/template"
 
+	"github.com/sparkymat/resty/cmd/modelgen/field"
 	"github.com/sparkymat/resty/cmd/modelgen/golang"
 
 	"bitbucket.org/pkg/inflect"
@@ -22,24 +22,19 @@ var supportedTypes = map[string]reflect.Type{
 }
 
 type modelTemplateValues struct {
-	ModelName      string
-	PrimaryKey     string
-	PrimaryKeyType string
-	FieldLines     string
+	ModelName              string
+	PrimaryKey             field.Type
+	Fields                 []field.Type
+	ResourceCollectionName string
+	BackTick               string
+	TableName              string
 }
 
 func main() {
-	modelName, fields := processArgs()
+	modelName, tableName, fields := processArgs()
+
 	tempPath := fmt.Sprintf("model/%v.go.temp", inflect.Underscore(modelName))
 	outPath := fmt.Sprintf("model/%v.go", inflect.Underscore(modelName))
-
-	fieldLines := []string{}
-
-	for _, field := range fields {
-		fieldLines = append(fieldLines, fmt.Sprintf("%v %v `db:\"%v\"`", field.FieldName, field.FieldType.Name(), field.ColumnName))
-	}
-
-	fieldLine := strings.Join(fieldLines, "\n")
 
 	os.MkdirAll("model", 0755)
 
@@ -57,8 +52,12 @@ func main() {
 	}
 
 	values := modelTemplateValues{}
+	values.BackTick = "`"
 	values.ModelName = modelName
-	values.FieldLines = fieldLine
+	values.TableName = tableName
+	values.Fields = fields
+	values.PrimaryKey = fields[0]
+	values.ResourceCollectionName = inflect.Pluralize(inflect.Underscore(modelName))
 
 	err = tpl.Execute(fp, values)
 	if err != nil {
