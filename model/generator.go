@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"text/template"
 
-	"github.com/sparkymat/resty/cmd/modelgen/golang"
+	"github.com/sparkymat/resty/golang"
 
 	"bitbucket.org/pkg/inflect"
 )
