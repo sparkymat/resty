@@ -1,4 +1,4 @@
-package router
+package verb
 
 import (
 	"fmt"
@@ -25,33 +25,33 @@ var Update = Verb{name: "update", methods: []shttp.Method{shttp.Patch, shttp.Pos
 var Index = Verb{name: "index", methods: []shttp.Method{shttp.Get}, actionType: CollectionAction}
 var Destroy = Verb{name: "destroy", methods: []shttp.Method{shttp.Delete}, actionType: MemberAction}
 
-func (verb Verb) Action() string {
-	return inflect.Camelize(verb.name)
+func (v Verb) Action() string {
+	return inflect.Camelize(v.name)
 }
 
-func (verb Verb) Methods() []shttp.Method {
-	return verb.methods
+func (v Verb) Methods() []shttp.Method {
+	return v.methods
 }
 
-func MemberVerb(methods []shttp.Method, verb string) Verb {
-	return Verb{name: verb, methods: methods, actionType: MemberAction}
+func MemberVerb(methods []shttp.Method, v string) Verb {
+	return Verb{name: v, methods: methods, actionType: MemberAction}
 }
 
-func CollectionVerb(methods []shttp.Method, verb string) Verb {
-	return Verb{name: verb, methods: methods, actionType: CollectionAction}
+func CollectionVerb(methods []shttp.Method, v string) Verb {
+	return Verb{name: v, methods: methods, actionType: CollectionAction}
 }
 
-func (verb Verb) routeSuffix() string {
-	switch verb.name {
+func (v Verb) routeSuffix() string {
+	switch v.name {
 	case "create", "index":
 		return ""
 	case "show", "update", "destroy":
 		return "/{id:[0-9]+}"
 	}
 
-	if verb.actionType == MemberAction {
-		return fmt.Sprintf("/{id:[0-9]+}/%v", verb.name)
+	if v.actionType == MemberAction {
+		return fmt.Sprintf("/{id:[0-9]+}/%v", v.name)
 	} else {
-		return fmt.Sprintf("/%v", verb.name)
+		return fmt.Sprintf("/%v", v.name)
 	}
 }
