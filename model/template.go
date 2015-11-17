@@ -1,6 +1,9 @@
 package model
 
-import "github.com/sparkymat/resty/field"
+import (
+	"bitbucket.org/pkg/inflect"
+	"github.com/sparkymat/resty/field"
+)
 
 type modelTemplateValues struct {
 	ModelName              string
@@ -11,6 +14,10 @@ type modelTemplateValues struct {
 	TableName              string
 }
 
+func (v modelTemplateValues) ModelNamePlural() string {
+	return inflect.Camelize(inflect.Pluralize(inflect.Underscore(v.ModelName)))
+}
+
 var modelTemplate = `package model
 type {{.ModelName}} struct {
 {{range $field := .Fields}} {{$field.FieldName}} {{$field.FieldType.Name}} {{$field.DbColumnNameAnnotation}}
@@ -18,6 +25,28 @@ type {{.ModelName}} struct {
 }
 
 type {{.ModelName}}List []{{.ModelName}}
+
+func FindAll{{.ModelNamePlural}}() ({{.ModelName}}List, error) {
+	collection := []{{.ModelName}}{}
+
+	sql := "SELECT * FROM {{.TableName}}"
+	rows, err := db.DB.Queryx(sql)
+	if err != nil {
+		return collection, err
+	}
+	
+	defer rows.Close()
+
+	for rows.Next() {
+		var v {{.ModelName}}
+		err := rows.StructScan(&v)
+		if err == nil {
+			collection = append(collection, v)
+		}
+	}
+
+	return collection, nil
+}
 
 func Find{{.ModelName}}By{{.PrimaryKey.FieldName}}(key {{.PrimaryKey.FieldType.String}}) (*{{.ModelName}}, error) {
 	sql := "SELECT * FROM {{.TableName}} WHERE {{.PrimaryKey.ColumnName}} = ?"
@@ -28,11 +57,10 @@ func Find{{.ModelName}}By{{.PrimaryKey.FieldName}}(key {{.PrimaryKey.FieldType.S
 	}
 
 	defer rows.Close()
-	var t {{.ModelName}}
 
+	var t {{.ModelName}}
 	rows.Next()
 	err = rows.StructScan(&t)
-
 	if err != nil {
 		return nil, err
 	}
