@@ -15,7 +15,7 @@ var supportedTypes = map[string]reflect.Type{
 	"int64":   reflect.TypeOf(int64(0)),
 	"int32":   reflect.TypeOf(int32(0)),
 	"string":  reflect.TypeOf(string("")),
-	"boolean": reflect.TypeOf(bool(true)),
+	"bool":    reflect.TypeOf(bool(true)),
 	"float64": reflect.TypeOf(float64(0.0)),
 	"float32": reflect.TypeOf(float32(0.0)),
 }

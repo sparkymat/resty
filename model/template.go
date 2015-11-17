@@ -68,6 +68,15 @@ func Find{{.ModelName}}By{{.PrimaryKey.FieldName}}(key {{.PrimaryKey.FieldType.S
 	return &t, nil
 }
 
+func New{{.ModelName}}(params map[string][]string) ({{.ModelName}}, error) {
+	var v {{.ModelName}}
+
+	{{range $field := .Fields}} {{$field.ParamParsingStatements}} 
+	{{end}}
+
+	return v, nil
+}
+
 func (t {{.ModelName}}) AsMap() map[string]interface{} {
 	return map[string]interface{} {
 	{{range $field := .Fields}} "{{$field.FieldNameUnderscored}}": t.{{$field.FieldName}},
