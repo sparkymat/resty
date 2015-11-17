@@ -10,7 +10,7 @@ The methods will be of type `func (response http.ResponseWriter, request *http.R
 Example usage:
 
 ```go
-r := router.NewRouter()	// Create a new resty router
+r := router.New()	// Create a new resty router
 r.EnableDebug() 	// This will log incoming requests to stdout
 
 r.Resource([]string{"users"}, controller.User{}).Only().	// Only generate 'create' method: PUT /users

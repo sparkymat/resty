@@ -17,7 +17,7 @@ type router struct {
 	debugMode        bool
 }
 
-func NewRouter() *router {
+func New() *router {
 	r := router{}
 	r.muxRouter = mux.NewRouter()
 
