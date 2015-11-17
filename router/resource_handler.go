@@ -8,6 +8,7 @@ import (
 
 	"bitbucket.org/pkg/inflect"
 	"github.com/gorilla/mux"
+	"github.com/sparkymat/resty/verb"
 	shttp "github.com/sparkymat/webdsl/http"
 )
 
@@ -16,7 +17,7 @@ type resourceHandler struct {
 	name        string
 	controller  interface{}
 	router      *mux.Router
-	verbs       []Verb
+	verbs       []verb.Verb
 }
 
 func (handler resourceHandler) Controller(controller interface{}) resourceHandler {
@@ -34,23 +35,23 @@ func (handler resourceHandler) pathPrefix() string {
 }
 
 func (handler *resourceHandler) Member(name string, methods []shttp.Method) *resourceHandler {
-	verb := Verb{name: name, methods: methods, actionType: MemberAction}
-	handler.verbs = append(handler.verbs, verb)
+	v := verb.Verb{Name: name, Methods: methods, ActionType: verb.MemberAction}
+	handler.verbs = append(handler.verbs, v)
 	return handler
 }
 
 func (handler *resourceHandler) Collection(name string, methods []shttp.Method) *resourceHandler {
-	verb := Verb{name: name, methods: methods, actionType: CollectionAction}
+	verb := verb.Verb{Name: name, Methods: methods, ActionType: verb.CollectionAction}
 	handler.verbs = append(handler.verbs, verb)
 	return handler
 }
 
-func (handler *resourceHandler) Except(verbs ...Verb) *resourceHandler {
+func (handler *resourceHandler) Except(verbs ...verb.Verb) *resourceHandler {
 	filteredVerbs := handler.verbs[:0]
 	for _, v := range handler.verbs {
 		var included = true
 		for _, exceptedVerb := range verbs {
-			if v.name == exceptedVerb.name {
+			if v.Name == exceptedVerb.Name {
 				included = false
 			}
 		}
@@ -62,12 +63,12 @@ func (handler *resourceHandler) Except(verbs ...Verb) *resourceHandler {
 	return handler
 }
 
-func (handler *resourceHandler) Only(verbs ...Verb) *resourceHandler {
+func (handler *resourceHandler) Only(verbs ...verb.Verb) *resourceHandler {
 	filteredVerbs := handler.verbs[:0]
 	for _, v := range handler.verbs {
 		var included = false
 		for _, includedVerb := range verbs {
-			if v.name == includedVerb.name {
+			if v.Name == includedVerb.Name {
 				included = true
 			}
 		}
@@ -114,9 +115,9 @@ func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, respons
 	var route *mux.Route
 
 	for _, v := range handler.verbs {
-		route = router.NewRoute().Path(fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.name, v.routeSuffix()))
+		route = router.NewRoute().Path(fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.name, v.RouteSuffix()))
 		if route.Match(request, &match) {
-			for _, m := range v.Methods() {
+			for _, m := range v.Methods {
 				if string(m) == request.Method {
 					handler.callController(v.Action(), response, request, handler.collectParams(request, match))
 					return true
@@ -130,8 +131,8 @@ func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, respons
 
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
 	for _, verb := range handler.verbs {
-		for _, method := range verb.methods {
-			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.name, verb.routeSuffix(), reflect.TypeOf(handler.controller), verb.Action())
+		for _, method := range verb.Methods {
+			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.name, verb.RouteSuffix(), reflect.TypeOf(handler.controller), verb.Action())
 		}
 	}
 }

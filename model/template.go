@@ -1,6 +1,6 @@
-package main
+package model
 
-import "github.com/sparkymat/resty/cmd/modelgen/field"
+import "github.com/sparkymat/resty/field"
 
 type modelTemplateValues struct {
 	ModelName              string

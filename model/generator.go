@@ -1,4 +1,4 @@
-package main
+package model
 
 import (
 	"fmt"
@@ -20,9 +20,8 @@ var supportedTypes = map[string]reflect.Type{
 	"float32": reflect.TypeOf(float32(0.0)),
 }
 
-func main() {
-	modelName, tableName, fields := processArgs()
-
+func Generate(args []string) {
+	modelName, tableName, fields := processArgs(args)
 	tempPath := fmt.Sprintf("model/%v.go.temp", inflect.Underscore(modelName))
 	outPath := fmt.Sprintf("model/%v.go", inflect.Underscore(modelName))
 

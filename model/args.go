@@ -1,4 +1,4 @@
-package main
+package model
 
 import (
 	"fmt"
@@ -6,19 +6,18 @@ import (
 	"strings"
 
 	"bitbucket.org/pkg/inflect"
-	"github.com/sparkymat/resty/cmd/modelgen/field"
+	"github.com/sparkymat/resty/field"
 )
 
-func processArgs() (string, string, []field.Type) {
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: modelgen model-name(:table-name) primary-key:type(:column_name) (optional: field1:type field2:type:column-name ... )\n")
+func processArgs(args []string) (string, string, []field.Type) {
+	if len(args) < 2 {
+		fmt.Fprintf(os.Stderr, "Error: Missing input args\n")
 		os.Exit(1)
 	}
 
-	args := os.Args[2:]
 	var fields []field.Type
 
-	for _, arg := range args {
+	for _, arg := range args[1:] {
 		pieces := strings.Split(arg, ":")
 
 		if len(pieces) < 2 {
@@ -50,10 +49,10 @@ func processArgs() (string, string, []field.Type) {
 		fields = append(fields, field)
 	}
 
-	modelName := inflect.Camelize(os.Args[1])
+	modelName := inflect.Camelize(args[0])
 	tableName := inflect.Pluralize(inflect.Underscore(modelName))
 
-	modelParts := strings.Split(os.Args[1], ":")
+	modelParts := strings.Split(args[0], ":")
 	if len(modelParts) > 1 {
 		modelName = inflect.Camelize(modelParts[0])
 		tableName = modelParts[1]

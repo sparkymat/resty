@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/sparkymat/resty/verb"
 )
 
 type router struct {
@@ -51,7 +52,7 @@ func (router *router) Resource(path []string, controller interface{}) *resourceH
 	handler.parentChain = path[:len(path)-1]
 	handler.router = mux.NewRouter()
 	handler.controller = controller
-	handler.verbs = []Verb{Create, Update, Show, Index, Destroy}
+	handler.verbs = []verb.Verb{verb.Create, verb.Update, verb.Show, verb.Index, verb.Destroy}
 
 	router.resourceHandlers = append(router.resourceHandlers, handler)
 
