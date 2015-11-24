@@ -41,7 +41,6 @@ func Generate(args []string) {
 	}
 
 	values := modelTemplateValues{}
-	values.BackTick = "`"
 	values.ModelName = modelName
 	values.TableName = tableName
 	values.Fields = fields
@@ -57,9 +56,10 @@ func Generate(args []string) {
 	fp.Close()
 
 	err = golang.Fmt(tempPath, outPath)
+	os.Remove(tempPath)
 	if err != nil {
+		os.Remove(outPath)
 		fmt.Fprintf(os.Stderr, "Error: Unable to gofmt the model file. Reason: %v\n", err.Error())
 		os.Exit(1)
 	}
-	os.Remove(tempPath)
 }

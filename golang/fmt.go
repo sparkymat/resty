@@ -31,5 +31,7 @@ func Fmt(inPath string, outPath string) error {
 
 	io.Copy(outFile, cmdStdout)
 
-	return nil
+	err = cmd.Wait()
+
+	return err
 }

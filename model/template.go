@@ -10,7 +10,6 @@ type modelTemplateValues struct {
 	PrimaryKey             field.Type
 	Fields                 []field.Type
 	ResourceCollectionName string
-	BackTick               string
 	TableName              string
 }
 
@@ -75,6 +74,10 @@ func New{{.ModelName}}(params map[string][]string) ({{.ModelName}}, error) {
 	{{end}}
 
 	return v, nil
+}
+
+func (t {{.ModelName}}) Save() error {
+	sql := "SELECT * FROM {{.TableName}} WHERE {{.PrimaryKey.ColumnName}} = ?"
 }
 
 func (t {{.ModelName}}) AsMap() map[string]interface{} {
