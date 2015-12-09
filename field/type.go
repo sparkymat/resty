@@ -21,6 +21,14 @@ func (t Type) DbColumnNameAnnotation() string {
 	return fmt.Sprintf("`db:\"%v\"`", t.ColumnName)
 }
 
+func (t Type) ZeroValue() string {
+	if t.FieldType == reflect.TypeOf("") {
+		return "\"\""
+	}
+
+	return fmt.Sprintf("%v", reflect.Zero(t.FieldType))
+}
+
 func (t Type) ParamParsingStatements() string {
 	lowerFieldName := inflect.CamelizeDownFirst(t.FieldName)
 
