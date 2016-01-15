@@ -81,6 +81,7 @@ func (router router) ServeHTTP(response http.ResponseWriter, request *http.Reque
 			}
 		}
 
+		log.Print("[LOG] ---")
 		log.Printf("[LOG] Incoming request: %v on %v with params: {%v}", request.Method, request.RequestURI, strings.Join(params, " , "))
 	}
 
