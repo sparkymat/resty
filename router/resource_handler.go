@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 
@@ -90,24 +91,9 @@ func (handler resourceHandler) callController(method string, response http.Respo
 	if methodReflection.IsValid() {
 		methodReflection.Call(args)
 	} else {
+		log.Printf("[LOG] Error! No '%v' method on %v", method, reflect.TypeOf(handler.controller).Name())
 		http.Error(response, fmt.Sprintf("No '%v' method on %v", method, reflect.TypeOf(handler.controller).Name()), http.StatusInternalServerError)
 	}
-}
-
-func (handler resourceHandler) collectParams(request *http.Request, match mux.RouteMatch) map[string][]string {
-	params := make(map[string][]string)
-
-	for key, value := range match.Vars {
-		var values []string
-		values = append(values, value)
-		params[key] = values
-	}
-
-	for key, value := range request.Form {
-		params[key] = value
-	}
-
-	return params
 }
 
 func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, response http.ResponseWriter, request *http.Request) bool {
@@ -119,7 +105,7 @@ func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, respons
 		if route.Match(request, &match) {
 			for _, m := range v.Methods {
 				if string(m) == request.Method {
-					handler.callController(v.Action(), response, request, handler.collectParams(request, match))
+					handler.callController(v.Action(), response, request, collectParams(request, match))
 					return true
 				}
 			}
@@ -132,7 +118,8 @@ func (handler resourceHandler) checkAndHandleRequest(router *mux.Router, respons
 func (handler resourceHandler) PrintRoutes(writer io.Writer) {
 	for _, verb := range handler.verbs {
 		for _, method := range verb.Methods {
-			fmt.Fprintf(writer, "%v\t%v/%v%v\t%v#%v\n", method, handler.pathPrefix(), handler.name, verb.RouteSuffix(), reflect.TypeOf(handler.controller), verb.Action())
+			path := fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.name, verb.RouteSuffix())
+			fmt.Fprintf(writer, "%6s%40s\t%s#%s\n", method, path, reflect.TypeOf(handler.controller), verb.Action())
 		}
 	}
 }

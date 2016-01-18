@@ -10,10 +10,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sparkymat/resty/verb"
+	shttp "github.com/sparkymat/webdsl/http"
 )
 
 type router struct {
 	resourceHandlers []resourceHandler
+	handlerFuncs     []handlerConfig
 	muxRouter        *mux.Router
 	debugMode        bool
 }
@@ -31,6 +33,42 @@ func (router *router) EnableDebug() {
 
 func (router *router) DisableDebug() {
 	router.debugMode = false
+}
+
+func (router *router) Head(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Head}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
+}
+
+func (router *router) Get(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Get}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
+}
+
+func (router *router) Post(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Post}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
+}
+
+func (router *router) Put(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Put}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
+}
+
+func (router *router) Patch(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Patch}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
+}
+
+func (router *router) Delete(path string, handlerFunc HandlerFunc) {
+	config := handlerConfig{path: path, handler: handlerFunc, method: shttp.Delete}
+
+	router.handlerFuncs = append(router.handlerFuncs, config)
 }
 
 func (router *router) HandleFunc(path string, handlerFunc http.HandlerFunc) {
@@ -92,6 +130,15 @@ func (router router) ServeHTTP(response http.ResponseWriter, request *http.Reque
 		}
 	}
 
+	for _, handlerConfig := range router.handlerFuncs {
+		var handled = handlerConfig.checkAndHandleRequest(router.muxRouter, response, request)
+		if handled {
+			return
+		}
+	}
+
+	log.Printf("[LOG] Warning! No matching resource or route. Passing request to internal Gorilla Mux router.")
+
 	router.muxRouter.ServeHTTP(response, request)
 }
 
@@ -107,4 +154,24 @@ func (router router) PrintRoutes(writer io.Writer) {
 	for _, handler := range router.resourceHandlers {
 		handler.PrintRoutes(writer)
 	}
+
+	for _, handlerConfig := range router.handlerFuncs {
+		handlerConfig.PrintRoute(writer)
+	}
+}
+
+func collectParams(request *http.Request, match mux.RouteMatch) map[string][]string {
+	params := make(map[string][]string)
+
+	for key, value := range match.Vars {
+		var values []string
+		values = append(values, value)
+		params[key] = values
+	}
+
+	for key, value := range request.Form {
+		params[key] = value
+	}
+
+	return params
 }
