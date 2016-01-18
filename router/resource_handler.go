@@ -119,7 +119,7 @@ func (handler resourceHandler) PrintRoutes(writer io.Writer) {
 	for _, verb := range handler.verbs {
 		for _, method := range verb.Methods {
 			path := fmt.Sprintf("%v/%v%v", handler.pathPrefix(), handler.name, verb.RouteSuffix())
-			fmt.Fprintf(writer, "%6s%40s\t%s#%s\n", method, path, reflect.TypeOf(handler.controller), verb.Action())
+			fmt.Fprintf(writer, "%6s%64s\t%s#%s()\n", method, path, reflect.TypeOf(handler.controller), verb.Action())
 		}
 	}
 }

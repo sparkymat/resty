@@ -37,5 +37,5 @@ func (config handlerConfig) PrintRoute(writer io.Writer) {
 	functionName := runtime.FuncForPC(reflect.ValueOf(config.handler).Pointer()).Name()
 	fWords := strings.Split(functionName, "/")
 	functionShortName := fWords[len(fWords)-1]
-	fmt.Fprintf(writer, "%6s%40s\t%s()\n", config.method, config.path, functionShortName)
+	fmt.Fprintf(writer, "%6s%64s\t%s()\n", config.method, config.path, functionShortName)
 }
