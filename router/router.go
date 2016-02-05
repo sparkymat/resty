@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/sparkymat/resty/verb"
@@ -124,15 +125,23 @@ func (router router) ServeHTTP(response http.ResponseWriter, request *http.Reque
 	}
 
 	for _, resource := range router.resourceHandlers {
+		startTime := time.Now()
 		var handled = resource.checkAndHandleRequest(router.muxRouter, response, request)
 		if handled {
+			endTime := time.Now()
+			duration := endTime.Sub(startTime)
+			log.Printf("[LOG] Request handled in %.3f seconds", duration.Seconds())
 			return
 		}
 	}
 
 	for _, handlerConfig := range router.handlerFuncs {
+		startTime := time.Now()
 		var handled = handlerConfig.checkAndHandleRequest(router.muxRouter, response, request)
 		if handled {
+			endTime := time.Now()
+			duration := endTime.Sub(startTime)
+			log.Printf("[LOG] Request handled in %.3f seconds", duration.Seconds())
 			return
 		}
 	}
