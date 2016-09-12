@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -25,6 +26,7 @@ func (config handlerConfig) checkAndHandleRequest(router *mux.Router, response h
 	var route *mux.Route
 
 	route = router.NewRoute().Path(config.path)
+	log.Printf("Checking: %v : %v", request.URL, config.path)
 	if route.Match(request, &match) && string(config.method) == request.Method {
 		config.handler(response, request, collectParams(request, match))
 		return true
